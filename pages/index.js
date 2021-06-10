@@ -12,12 +12,13 @@ const timeType = {
     stopmessage: "Bạn đã hết thời gian nghỉ bắt đầu làm việc thôi nào 😉",
   },
 };
+
 function pomodoro() {
   const [time, setTime] = useState(25 * 60);
   const [active, setActive] = useState(false);
   const [inter, setInter] = useState();
   const [type, setType] = useState("pomodoro");
-  const [currentTime, setCurrentTime] = useState();
+  const [currentTime, setCurrentTime] = useState(0);
   // Change type
   useEffect(() => {
     timeReset();
@@ -33,6 +34,8 @@ function pomodoro() {
         });
       }
       clearInterval(inter);
+      setActive(false);
+      setInter(null);
     }
   }, [time]);
 
@@ -40,16 +43,12 @@ function pomodoro() {
   useEffect(() => {
     if (active) {
       setInter(
+
         setInterval(() => {
+          // Đặt thời gian bàng thời gian của 1 pomodoro công thời gian lúc ấn start trừ thời gian hiện tại
           setTime(
             Math.floor(
-              timeType[type].time - (new Date().getTime() - currentTime) / 1000
-            )
-          );
-          console.log(
-            "((new Date().getTime()) - currentTime) :>> ",
-            Math.floor(
-              timeType[type].time - (new Date().getTime() - currentTime) / 1000
+              timeType[type].time + currentTime/1000 - new Date().getTime()/1000
             )
           );
         }, 10)
@@ -61,7 +60,14 @@ function pomodoro() {
   }, [active]);
 
   function timeStart() {
-    setCurrentTime(new Date().getTime());
+    if(currentTime===0){
+      // Lưu thời gian hiện tại vào biến
+      setCurrentTime(new Date().getTime());
+    }
+    else{
+      // Đặt thời gian hiện tại bằng thời gian hiện tại trừ Thời gian đã chạy đc.
+      setCurrentTime(new Date().getTime() - (timeType[type].time*1000 - time*1000));
+    }
     if (Notification.permission != "granted") {
       alert("You need turn on Notification");
       Notification.requestPermission(function (status) {
@@ -74,6 +80,7 @@ function pomodoro() {
   function timeStop() {
     clearInterval(inter);
     setActive(false);
+    setCurrentTime(new Date().getTime());
   }
 
   // resetTime
@@ -81,6 +88,7 @@ function pomodoro() {
     clearInterval(inter);
     setActive(false);
     setTime(timeType[type].time);
+    setCurrentTime(0)
   }
   return (
     <div>
