@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
 import Head from "next/head";
-
+import React, { useCallback, useEffect, useRef, useState } from "react";
 const timeType = {
   pomodoro: { time: 25 * 60, stopmessage: "Bạn đã hoàn thành pomodoro 🍅" },
   sbreak: {
@@ -12,43 +11,59 @@ const timeType = {
     stopmessage: "Bạn đã hết thời gian nghỉ bắt đầu làm việc thôi nào 😉",
   },
 };
+const IndexPage = () => {
+  const workerRef = useRef<Worker>();
 
-function pomodoro() {
   const [time, setTime] = useState(25 * 60);
   const [active, setActive] = useState(false);
   const [inter, setInter] = useState();
-  const [type, setType] = useState("pomodoro");
+  const [type, setType] = useState<any>("pomodoro");
   const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    workerRef.current = new Worker(new URL("../worker.ts", import.meta.url));
+    workerRef.current.onmessage = (event: MessageEvent<number>) =>
+      alert(`WebWorker Response => ${event.data}`);
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, []);
+
+  const handleWork = useCallback(async () => {
+    workerRef.current?.postMessage(100000);
+  }, []);
+
   // Change type
   useEffect(() => {
     timeReset();
   }, [type]);
 
   // Send notification
-  useEffect(async () => {
-    console.log("time :>> ", time);
-    if (time <= 0) {
-      if (Notification.permission == "granted") {
-        navigator.serviceWorker.getRegistration().then(function (reg) {
-          reg.showNotification(timeType[type].stopmessage);
-        });
-      }
-      clearInterval(inter);
-      setActive(false);
-      setInter(null);
-    }
-  }, [time]);
+  // useEffect(async () => {
+  //   console.log("time :>> ", time);
+  //   if (time <= 0) {
+  //     if (Notification.permission == "granted") {
+  //       navigator.serviceWorker.getRegistration().then(function (reg) {
+  //         reg.showNotification(timeType[type].stopmessage);
+  //       });
+  //     }
+  //     clearInterval(inter);
+  //     setActive(false);
+  //     setInter(null);
+  //   }
+  // }, [time]);
 
   // Active time
   useEffect(() => {
     if (active) {
       setInter(
-
         setInterval(() => {
           // Đặt thời gian bàng thời gian của 1 pomodoro công thời gian lúc ấn start trừ thời gian hiện tại
           setTime(
             Math.floor(
-              timeType[type].time + currentTime/1000 - new Date().getTime()/1000
+              timeType[type].time +
+                currentTime / 1000 -
+                new Date().getTime() / 1000
             )
           );
         }, 10)
@@ -60,13 +75,14 @@ function pomodoro() {
   }, [active]);
 
   function timeStart() {
-    if(currentTime===0){
+    if (currentTime === 0) {
       // Lưu thời gian hiện tại vào biến
       setCurrentTime(new Date().getTime());
-    }
-    else{
+    } else {
       // Đặt thời gian hiện tại bằng thời gian hiện tại trừ Thời gian đã chạy đc.
-      setCurrentTime(new Date().getTime() - (timeType[type].time*1000 - time*1000));
+      setCurrentTime(
+        new Date().getTime() - (timeType[type].time * 1000 - time * 1000)
+      );
     }
     if (Notification.permission != "granted") {
       alert("You need turn on Notification");
@@ -88,7 +104,7 @@ function pomodoro() {
     clearInterval(inter);
     setActive(false);
     setTime(timeType[type].time);
-    setCurrentTime(0)
+    setCurrentTime(0);
   }
   return (
     <div>
@@ -171,6 +187,6 @@ function pomodoro() {
       </div>
     </div>
   );
-}
+};
 
-export default pomodoro;
+export default IndexPage;
